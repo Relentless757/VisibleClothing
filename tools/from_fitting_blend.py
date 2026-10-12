@@ -192,7 +192,8 @@ def process(item, male, female, raw):
             # derive the female fit: same-topology parts move with the body; hands go by nearest point
             fparts, _, _ = vb.load_body("female", head="ref" if kind == "head" else "env")
             fsurf = gg.BodySurface(fparts, k["parts"], gg.region_of_bone)
-            G = vb.verts_np(g)
+            G = c.pop("_before_over", None)
+            G = vb.verts_np(g) if G is None else G     # before the shirt was pushed out over the (male) gloves
             F = G.copy()
             same = all(np.array_equal(a["T"], b["T"]) for a, b in zip(surf.data, fsurf.data))
             for i, a in enumerate(anchors):

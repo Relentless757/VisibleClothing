@@ -109,7 +109,7 @@ All commands run in **Git Bash** from the repository folder, with the game close
 5. Optional checks without the game: `tools/pose_test.py` (posed renders: fist, arms up, stride, ...).
 
 Without `--raw` the build also: pushes cloth out of the skin, keeps layering (shirts over the head and their pants,
-pants over boots and shoes, `under` garments pulled under), closes slits between separate shirt panels, and adds
+pants over boots and shoes, shirt sleeves over every glove, `under` garments pulled under), closes slits between separate shirt panels, and adds
 fist clearance to gloves. Hats always skip the seam closing; gloves only get pushed out where they are inside the skin.
 
 ### `pack.json`
@@ -136,6 +136,7 @@ fist clearance to gloves. Hats always skip the seam closing; gloves only get pus
 | `merge_into` | for `pants`: the outfit `id` they belong to (one chest-slot model); without it pants are their own chest item |
 | `over` | items this one is fitted over (e.g. a shirt over its pants): `["MyPants"]`, base items work too (`ClothingPantsT2`) |
 | `under` | items this one is pulled under (e.g. a tucked shirt under its pants, a balaclava under shirts) |
+| `over_gloves` | shirts: `false` = don't push the sleeve ends out over the gloves (default `true`: Visible Clothing's three gloves and the pack's own) |
 | `strings` | `true`: small loose pieces at the front of the waist get cloth physics (drawstrings) |
 | `neck_tight`, `neck_gap` | hats: the neck below `Neck + neck_tight` m hugs the skin at `neck_gap` m (so collars cover it) |
 | `rough_min`, `no_metal` | texture: minimum roughness (default 0.7), ignore the metallic map |

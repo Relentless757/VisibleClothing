@@ -957,6 +957,52 @@ def boot_points(sex, zmax):
     return Points(V[keep], N[keep])
 
 
+def glove_objs(sex):
+    """Every glove a shirt may be worn with: our three glove liners and a pack's own gloves (fitted, in Blender
+    space). Long sleeves end over the back of the hand and must lie over whichever glove is worn."""
+    items = [f"ClothingHandsT{t}" for t in (1, 2, 3)]
+    items += [it for it, cf in (vb.vc_pack.items() or {}).items() if cf["kind"] == "hands"]
+    obs = [o for o in (fitted_obj(x, sex) for x in items) if o is not None]
+    print(f"  gloves to lie over: {len(obs)}")
+    return obs
+
+
+def push_over(g, inners, coll, nb, gap=0.0025, reach=0.015, max_push=0.015, iters=5):
+    """The mirror of pull_under: wherever an inner garment (a glove) lies under this one, along the vert's normal
+    within `reach`, push the vert out to `gap` outside its outermost surface (smoothly, at most `max_push`).
+    Ray test from each garment vert, so only the part that really overlaps moves (the sleeve end over the hand)."""
+    trees = [BVHTree.FromObject(o, bpy.context.evaluated_depsgraph_get()) for o in inners]
+    for it in range(iters):
+        G = vb.verts_np(g)
+        g.data.update()
+        Nv = np.array([v.normal[:] for v in g.data.vertices])
+        D = np.zeros_like(G)
+        n_out = 0
+        for i, (v, n) in enumerate(zip(G, Nv)):
+            if n @ coll.nearest(v)[1] < 0.2:   # inner lining faces the skin: it follows its outer surface (spread)
+                continue
+            best = 0.0
+            for t in trees:
+                start, left = Vector(v - n * reach), 2 * reach
+                while left > 1e-4:               # walk the ray: the outermost outward-facing glove surface counts
+                    hit = t.ray_cast(start, Vector(n), left)
+                    if hit[0] is None:
+                        break
+                    if np.array(hit[1]) @ n > 0.2:
+                        s_out = (np.array(hit[0]) - v) @ n      # how far outside v the glove surface is
+                        best = max(best, s_out + gap)
+                    step = hit[3] + 1e-4
+                    start, left = start + Vector(n) * step, left - step
+            if best > 0:
+                D[i] = n * min(best, max_push)
+                n_out += 1
+        if not n_out:
+            break
+        D = smooth_field(spread(D, G, r=0.008), nb, 3, lam=0.5)
+        vb.set_verts(g, G + D)
+        print(f"  over gloves, pass {it}: {n_out} verts pushed out, max {np.linalg.norm(D, axis=1).max()*1000:.1f} mm")
+
+
 def collision_surface(item, c, kind, parts, surf, sex):
     """Body plus what this garment must lie over: shirts over the head envelope (its base reaches down over the
     shoulders) and over the fitted garments in c["over"] (an untucked shirt over its pants). Garments worn under
@@ -1279,6 +1325,11 @@ def finish(item, g, parts, B, reg, c, k, nb, sex, pre, iters=3, loose=None, loos
     if kind in ("outfit", "shirt", "pants"):
         close_seams(g, maxd=0.012)          # conform / unclip move the two sides of a seam a little differently
     keep_free(g, pre, c)
+    c["_before_over"] = vb.verts_np(g).copy()   # the female fit starts from this (the gloves are per sex)
+    if kind in ("outfit", "shirt") and c.get("over_gloves", True):
+        gloves = glove_objs(sex)
+        if gloves:
+            push_over(g, gloves, coll, nb)
     c["_lining"] = seam_lining(g, parts) if c.get("seam_lining") else None
     weights = garment_weights(g, surf, reg, c, kind, B, nb)
     if kind == "hands" and c.get("fist_clearance", True):
@@ -1431,7 +1482,7 @@ def main():
     nb = adjacency(g)
     pre = vb.verts_np(g)
     surf, anchors, weights = finish(item, g, parts, B, reg, c, k, nb, "male", pre)
-    male_G = vb.verts_np(g)
+    male_G = c.pop("_before_over")
     json.dump(dict(item=item, sex="male", parts=export_parts(g, weights, tex, c)),
               open(os.path.join(OUT, f"{item}_male.json"), "w"))
     # ---- female

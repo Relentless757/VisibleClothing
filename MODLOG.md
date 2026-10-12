@@ -151,3 +151,11 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   examples/ExamplePack (built end to end; models/build/dist gitignored). NOT tested in game: XML example, example pack.
   Zip My Mods/Nexus Upload Safe/VisibleClothing_v1.1.0.zip (publish check PASS vs Data + 7DaysToDie_Data), BBCode
   release/VisibleClothing_v1.1.0_Nexus.bbcode. DLL + ModInfo installed (1.0.0 copies in _work/backup_installed_1.0.0).
+- 2026-10-11 T2/T3 shirt sleeves clipped through the gloves (sleeve end reaches 2-4 cm past the wrist, partly inside
+  the glove). geo_garment.push_over() (mirror of pull_under: ray along each outward shirt vert normal, outermost glove
+  surface within 1.5 cm, push to 2.5 mm outside, capped 15 mm/pass, 5 passes, spread+smoothed) against all 3 gloves
+  (+ pack gloves), run last in finish() (CFG over_gloves=False to skip). Female fit starts from the male shape BEFORE
+  the push (c["_before_over"]) so nothing else changes: verified only verts within 6 cm of the wrist moved. Outfits are
+  built by geo_garment.py (auto fit), NOT from_fitting_blend (that gives different T2/T3 outfits). Using unclip() with
+  glove points (like boots) ran away (cuff moved 8-13 cm). tools/glove_check.py: male T2 sleeve verts under gloves
+  178/39/212 -> 8/5/8. Bundle installed; 1.1.0 zip rebuilt.
