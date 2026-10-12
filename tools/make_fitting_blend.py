@@ -1,6 +1,9 @@
 """Build fitting/VisibleClothing_Fitting.blend for hand-fitting the clothing in Blender.
 
 blender -b --factory-startup -P tools/make_fitting_blend.py
+With VC_PACK=<pack folder>: builds <pack>/fitting.blend with the pack's items (see tools/vc_pack.py). Items with no
+fit yet are imported from their model and roughly placed on their body slot. If the pack's fitting file exists, only
+missing items are added: fitted ones are never touched.
 
 Layout (metres, Z up, character faces -Y = Blender's Front view):
   Body Male / Body Female   vanilla body, hands, feet, head = White 04 (hats are fitted to it and morph onto the
@@ -17,11 +20,41 @@ import bpy, bmesh
 from mathutils import Matrix
 import math
 
-FIT = os.path.join(vb.ROOT, "fitting")
-TEX = os.path.join(FIT, "textures")
-OUT = os.path.join(vb.WORK, "out")
+PACK = vb.vc_pack.PACK
+FIT_FILE = vb.vc_pack.FIT_BLEND
+TEX = vb.vc_pack.FIT_TEX
+OUT = vb.vc_pack.OUT
 TO_BLEND = Matrix.Rotation(math.pi, 4, "Z")  # internal frame faces +Y; the fitting file faces -Y
-ITEMS = [f"Clothing{k}{t}" for k in ("Outfit", "Pants", "Head", "Hands", "Feet") for t in ("T1", "T2", "T3")]
+ITEMS = list(vb.vc_pack.items()) if PACK else     [f"Clothing{k}{t}" for k in ("Outfit", "Pants", "Head", "Hands", "Feet") for t in ("T1", "T2", "T3")]
+
+
+def place_raw(item, B):
+    """A pack item with no fit yet: import its model and scale / move it onto its body slot (internal frame,
+    character faces +Y, left = -X). Only a starting point: the modder fits it by hand."""
+    kind = vb.vc_pack.kind_of(item)
+    ob = vb.import_garment(item)
+    G = vb.verts_np(ob)
+    lo, hi = G.min(0), G.max(0)
+    head, hips, foot = np.array(B["Head"]), np.array(B["Hips"]), np.array(B["LeftFoot"])
+    target = {   # (centre, height)
+        "head": (head + [0, 0.01, 0.07], 0.26),
+        "outfit": (np.array(B["Spine2"]) + [0, 0, -0.05], 0.62),
+        "shirt": (np.array(B["Spine2"]) + [0, 0, -0.05], 0.62),
+        "pants": ((hips + foot) / 2 + [0, 0, 0.04], hips[2] + 0.08 - foot[2]),
+        "hands": (np.array(B["LeftHand"]) + [-0.05, 0.02, -0.03], 0.22),
+        "feet": ((foot + np.array(B["RightFoot"])) / 2 + [0, 0.04, -0.03], 0.16),
+    }[kind]
+    if kind == "head":   # hats: by width (a beanie is short, a balaclava tall), top at the top of the skull
+        s = 0.205 / max(hi[0] - lo[0], 1e-6)
+        P = (G - (lo + hi) / 2) * s
+        P += [head[0], head[1] + 0.01, head[2] + 0.205 - P[:, 2].max()]
+        vb.set_verts(ob, P)
+    else:
+        s = target[1] / max(hi[2] - lo[2], 1e-6)
+        vb.set_verts(ob, (G - (lo + hi) / 2) * s + target[0])
+    ob.data.shade_smooth()
+    print(f"  {item}: placed on the {kind} slot (scale x{s:.3f}) - fit it by hand")
+    return ob
 
 
 def coll(name, parent=None, hide=False):
@@ -71,8 +104,30 @@ def garment_from_json(item):
     return ob
 
 
+def add_missing_items():
+    """Pack fitting file already there: import only the items it does not have yet."""
+    bpy.ops.wm.open_mainfile(filepath=FIT_FILE)
+    cm = bpy.data.collections.get("Clothing Male")
+    have = {o.name.split(".")[0] for o in cm.all_objects}
+    new = [it for it in ITEMS if it not in have]
+    if not new:
+        print("fitting file has every item; nothing added")
+        return
+    _, B, _ = vb.load_body("male", head="ref")
+    for o in [o for o in bpy.data.objects if o.name.startswith("male_") and o.users_collection == (bpy.context.scene.collection,)]:
+        bpy.data.objects.remove(o)
+    for it in new:
+        ob = place_raw(it, B)
+        ob.data.transform(TO_BLEND)
+        move_to(ob, cm)
+    bpy.ops.wm.save_mainfile()
+    print("SAVED", FIT_FILE, "added", new)
+
+
 def main():
     os.makedirs(TEX, exist_ok=True)
+    if PACK and os.path.exists(FIT_FILE):
+        return add_missing_items()
     vb.clear()
     skin = bpy.data.materials.new("skin (reference)")
     skin.diffuse_color = (0.75, 0.6, 0.5, 1)
@@ -95,13 +150,21 @@ def main():
             ob.hide_select = True          # reference: can't be grabbed by accident
             move_to(ob, c)
     cm = coll("Clothing Male")
+    _, Bm, _ = vb.load_body("male", head="ref")
+    for o in [o for o in bpy.data.objects if not o.users_collection or o.users_collection[0] == bpy.context.scene.collection]:
+        if o.type == "MESH" and o.name.startswith("male_"):
+            bpy.data.objects.remove(o)
     for it in ITEMS:
-        ob = garment_from_json(it)
+        if os.path.exists(os.path.join(OUT, f"{it}_male.json")):
+            ob = garment_from_json(it)
+        else:
+            ob = place_raw(it, Bm)
         ob.data.transform(TO_BLEND)
-        cm.objects.link(ob)
+        move_to(ob, cm)
     coll("Clothing Female")
     bpy.context.scene.unit_settings.system = "METRIC"
-    out = os.path.join(FIT, "VisibleClothing_Fitting.blend")
+    out = FIT_FILE
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=out, relative_remap=True)
     print("SAVED", out)
 

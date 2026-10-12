@@ -32,3 +32,11 @@ __pycache__/
 
 # hand-fitting textures (copies of the model textures)
 fitting/textures/
+
+# --- clothing packs: models, fitting files and builds stay local ---
+examples/*/models/
+examples/*/build/
+examples/*/dist/
+examples/*/fitting.blend
+examples/*/fitting.blend1
+packs/

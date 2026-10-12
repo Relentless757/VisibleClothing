@@ -4,13 +4,15 @@ the Tripo garments, fit, weight, export.
 Coordinates: Unity (x, y, z) <-> Blender (x, z, y). That swap is a mirror, so triangle winding is
 reversed on the way in and again on the way out. The character faces +Y in Blender, its left is -X.
 """
-import bpy, bmesh, json, math, os
+import bpy, bmesh, json, math, os, sys
 import numpy as np
 from mathutils import Vector, Matrix
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK = os.path.join(ROOT, "_work")
-MODELS = os.path.join(ROOT, "7D2D Clothing models")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import vc_pack
+MODELS = vc_pack.MODELS          # the base mod's models, or the selected pack's (VC_PACK)
 
 
 def u2b(v):
@@ -90,11 +92,18 @@ def load_body(sex, head="env"):
     return parts, bone_pos(body), body
 
 
-def import_garment(item):
+def import_garment(item, path=None):
     before = set(bpy.data.objects)
-    bpy.ops.import_scene.fbx(filepath=os.path.join(MODELS, item + ".fbx"))
+    bpy.ops.import_scene.fbx(filepath=path or vc_pack.model_path(item))
     obs = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
-    assert len(obs) == 1, obs
+    assert obs, f"{item}: no mesh in {path or vc_pack.model_path(item)}"
+    if len(obs) > 1:   # a model made of several meshes: one garment object
+        for o in bpy.context.selected_objects:
+            o.select_set(False)
+        for o in obs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = obs[0]
+        bpy.ops.object.join()
     ob = obs[0]
     ob.name = item
     # bake transforms, then turn to face +Y like the character

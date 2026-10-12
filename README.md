@@ -17,6 +17,17 @@ armor piece is set to **Hidden** in the cosmetics menu.
 **Download:** see the Nexus Mods page (release zip). **Requirements:** EAC off (contains a DLL). In multiplayer,
 install on the server and every client.
 
+## Make your own visible clothing
+
+Visible Clothing is also a framework: any clothing-slot item with a model gets the same behaviour (hidden under
+shown armor, game shader, hats fitted to every head, boots under pants). Add-ons need no DLL of their own.
+See **[docs/MAKING_CLOTHING.md](docs/MAKING_CLOTHING.md)**:
+
+- **XML only**: new items reusing these models ([examples/XmlOnlyExample](examples/XmlOnlyExample), ready to install).
+- **Clothing packs**: your own models fitted, skinned and built into an add-on mod with `tools/vcpack.sh`
+  ([examples/ExamplePack](examples/ExamplePack)).
+- **Your own pipeline**: the conventions a bundle must follow.
+
 ## How it works
 
 - `src/VisibleClothing.cs` (Harmony):
@@ -33,8 +44,7 @@ Nothing derived from the game is in this repository; the tools read **your own**
 Requirements: Blender 5.x, Unity 2022.3.62f2, .NET SDK, Python 3 with `numpy`, `scipy`, `Pillow`, `UnityPy`, and
 the source 3D models (`7D2D Clothing models/<Item>.fbx` + `.fbm` textures, not included).
 
-1. Extract the vanilla body, heads and boots into `_work/` (`tools/extract_body.py`, `tools/head_envelope.py`,
-   `tools/dump_boots.py`).
+1. Extract the vanilla bodies, heads and boots from your game into `_work/`: `bash tools/extract_game_data.sh`.
 2. Fit every garment: `bash _work/refit_all.sh`, or per item
    `blender -b --factory-startup -P tools/geo_garment.py -- ClothingOutfitT2`.
    Hand-fitting: `tools/make_fitting_blend.py` writes `fitting/VisibleClothing_Fitting.blend`; edit it, then

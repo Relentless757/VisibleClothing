@@ -1,6 +1,8 @@
-"""Read hand-fitted garments from fitting/VisibleClothing_Fitting.blend and produce the bundle data.
+"""Read hand-fitted garments from the fitting file and produce the bundle data.
 
 blender -b --factory-startup -P tools/from_fitting_blend.py -- [Item ...] [--raw]
+Base mod: fitting/VisibleClothing_Fitting.blend -> _work/out. A clothing pack (VC_PACK=<pack folder>, see
+tools/vc_pack.py): <pack>/fitting.blend -> <pack>/build/out.
 
 For every object in "Clothing Male" (optionally only the named items):
   - takes its evaluated mesh in world space (modifiers + transforms applied), UVs and image texture
@@ -25,10 +27,24 @@ spec = importlib.util.spec_from_file_location("gg", os.path.join(os.path.dirname
 gg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gg)
 
-FIT = os.path.join(vb.ROOT, "fitting", "VisibleClothing_Fitting.blend")
-OUT = os.environ.get("VC_FIT_OUT", os.path.join(vb.WORK, "out"))   # VC_FIT_OUT: write elsewhere (dry run)
+FIT = vb.vc_pack.FIT_BLEND
+OUT = os.environ.get("VC_FIT_OUT", vb.vc_pack.OUT)   # VC_FIT_OUT: write elsewhere (dry run)
 FROM_BLEND = Matrix.Rotation(math.pi, 4, "Z")
-GAP = {"Outfit": 0.004, "Pants": 0.004, "Head": 0.005, "Hands": 0.0015, "Feet": 0.002}
+# hand fits sit closer than the automatic fit's margins
+GAP = {"outfit": 0.004, "shirt": 0.004, "pants": 0.004, "head": 0.005, "hands": 0.0015, "feet": 0.002}
+
+
+def mirror_one_glove(d):
+    """A glove model made for one hand: add the mirror image for the other hand (same UVs, faces flipped)."""
+    V = np.asarray(d["V"])
+    side = np.sign(np.median(V[:, 0]))
+    if not ((V[:, 0] * side) > -0.05).all():   # already holds both hands
+        return d
+    n = len(V)
+    print(f"  one glove only: adding the mirrored {'right' if side < 0 else 'left'} hand")
+    return dict(d, V=np.vstack([V, V * [-1, 1, 1]]),
+                tris=list(d["tris"]) + [(a + n, c_ + n, b + n) for a, b, c_ in d["tris"]],
+                uvs=list(d["uvs"]) + [[u[0], u[2], u[1]] for u in d["uvs"]])
 
 
 def grab(collection, only):
@@ -113,7 +129,10 @@ def process(item, male, female, raw):
     c = dict(fit.CFG[item])
     kind = c["kind"]
     k = dict(gg.KIND[kind], **c.get("kind_over", {}))
-    k["gap"] = GAP[next(x for x in GAP if x in item)]   # hand fits sit closer than the automatic fit's margins
+    k["gap"] = c.get("gap", GAP[kind])
+    if kind == "hands":
+        male = mirror_one_glove(male)
+        female = mirror_one_glove(female) if female else None
     tex = f"{item}.png"
     if male["img"] and os.path.exists(male["img"]):
         shutil.copy2(male["img"], os.path.join(OUT, tex))
@@ -136,7 +155,7 @@ def process(item, male, female, raw):
         surf = gg.BodySurface(parts, k["parts"], gg.region_of_bone)
         reg = regions(g, surf, nb)
         c.pop("_free", None)
-        if item == "ClothingPantsT1":  # cloth drawstrings: small separate pieces at the front of the waistband
+        if c.get("strings"):  # cloth drawstrings: small separate pieces at the front of the waistband
             G0 = vb.verts_np(g)
             free = [ix for ix in vb.islands(g) if 60 <= len(ix) <= 400 and G0[ix, 2].min() > B["Hips"].z - 0.25
                     and np.abs(G0[ix, 0]).max() < 0.09 and G0[ix, 1].mean() > 0.0]
@@ -191,10 +210,13 @@ def main():
     raw = "--raw" in argv
     only = [a for a in argv if not a.startswith("--")]
     bpy.ops.wm.open_mainfile(filepath=FIT)
+    os.makedirs(OUT, exist_ok=True)
     males, females = grab("Clothing Male", only), grab("Clothing Female", only)
-    # layer order: what a garment layers against must be fitted first (shoes, pants -> shirts -> hats)
-    order = ["Feet", "Hands", "Pants", "Outfit", "Head"]
-    rank = lambda it: (next((i for i, x in enumerate(order) if x in it), len(order)), it)
+    for item in [i for i in males if i not in fit.CFG]:
+        print(f"  {item}: not in {'pack.json' if vb.vc_pack.PACK else 'tools/fit.py'}, skipped")
+        males.pop(item)
+    # layer order: what a garment layers against must be fitted first (shoes, gloves, pants -> shirts -> hats)
+    rank = lambda it: (vb.vc_pack.KIND_ORDER.index(fit.CFG[it]["kind"]), it)
     for item, m in sorted(males.items(), key=lambda kv: rank(kv[0])):
         process(item, m, females.get(item), raw)
     print("DONE", len(males), "items")

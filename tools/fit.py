@@ -40,6 +40,10 @@ CFG = {
         Ring=((-0.117, 0.10), (-0.15, 0.55)), Pinky=((-0.225, 0.083), (-0.275, 0.45)))),
 }
 
+# a clothing pack (VC_PACK) brings its own items: hand-fitted in its fitting file, options from its pack.json
+if _pack_items := __import__("vc_pack").items():
+    CFG = _pack_items
+
 
 def slice_interval(V, z, dz, axis, center=0.0):
     """Extent along `axis` of the connected run of verts around `center` in slab |z-z0|<dz."""

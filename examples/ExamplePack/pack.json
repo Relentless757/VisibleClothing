@@ -1,0 +1,25 @@
+{
+  "name": "VisibleClothing_Example",
+  "display_name": "Example Clothing (Visible Clothing pack)",
+  "author": "Elisk",
+  "version": "1.0.0",
+  "description": "Example pack: a beanie and hand wraps as new clothing items.",
+  "items": [
+    {
+      "id": "ExampleBeanie",
+      "kind": "head",
+      "game_item": "clothingHeadExampleBeanie",
+      "new_item": {"extends": "clothingHeadT2", "name": "Example Beanie", "description": "A knit beanie from the Visible Clothing example pack."},
+      "hair_mask": "Hat",
+      "facial_hair_mask": "Full",
+      "rough_min": 0.85,
+      "no_metal": true
+    },
+    {
+      "id": "ExampleWraps",
+      "kind": "hands",
+      "game_item": "clothingHandsExampleWraps",
+      "new_item": {"extends": "clothingHandsT1", "name": "Example Hand Wraps", "description": "Fingerless wraps from the Visible Clothing example pack."}
+    }
+  ]
+}

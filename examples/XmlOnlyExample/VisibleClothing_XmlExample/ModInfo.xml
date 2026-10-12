@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xml>
+	<Name value="VisibleClothing_XmlExample" />
+	<DisplayName value="Visible Clothing - XML-only example" />
+	<Version value="1.0.0" />
+	<Description value="Example add-on: a new clothing item that reuses a Visible Clothing model. No DLL, no bundle. Requires the Visible Clothing mod." />
+	<Author value="Elisk" />
+	<Website value="https://github.com/Relentless757/VisibleClothing" />
+</xml>

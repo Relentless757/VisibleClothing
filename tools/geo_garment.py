@@ -18,7 +18,7 @@ import bpy, bmesh
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 
-OUT = os.path.join(vb.WORK, "out")
+OUT = vb.vc_pack.OUT              # base mod: _work/out; a clothing pack: <pack>/build/out
 
 # kind -> body parts used for anchoring/skinning, clipping gap (m), max looseness (m)
 KIND = {
@@ -909,7 +909,8 @@ def surface_obj(name, V, T, N=None):
 
 def fitted_obj(item, sex, part="garment"):
     """A fitted garment from _work/out (Unity coords, flipped winding) back in Blender space."""
-    path = os.path.join(OUT, f"{item}_{sex}.json")
+    path = next((p for p in (os.path.join(d, f"{item}_{sex}.json") for d in vb.vc_pack.out_dirs())
+                 if os.path.exists(p)), os.path.join(OUT, f"{item}_{sex}.json"))   # this pack's, then the base mod's
     if not os.path.exists(path):
         print(f"  (no {item}_{sex}.json to layer over)")
         return None
@@ -939,8 +940,11 @@ def boot_points(sex, zmax):
             m = min(cand, key=lambda x: max(v[1] for v in x["verts"]))   # shorter shaft = the variant drawn
             V.append(np.array(m["verts"])[:, [0, 2, 1]])
             N.append(np.array(m["normals"])[:, [0, 2, 1]])
-    for t in (1, 2, 3):
-        p = os.path.join(OUT, f"ClothingFeetT{t}_{sex}.json")
+    shoes = [os.path.join(vb.vc_pack.BASE_OUT, f"ClothingFeetT{t}_{sex}.json") for t in (1, 2, 3)]
+    for it, cf in (vb.vc_pack.items() or {}).items():   # a pack's own shoes too
+        if cf["kind"] == "feet":
+            shoes.append(os.path.join(OUT, f"{it}_{sex}.json"))
+    for p in shoes:
         if os.path.exists(p):
             for part in json.load(open(p))["parts"]:
                 V.append(np.array(part["verts"])[:, [0, 2, 1]])

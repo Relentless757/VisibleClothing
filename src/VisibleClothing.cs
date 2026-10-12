@@ -249,6 +249,8 @@ namespace VisibleClothing
         /// Hats carry one blend shape per head variant (see tools/pack_unity.py head_shapes): fitted around the
         /// largest head, the shape of the character's own head pulls the hat in to sit as snug on it.
         /// </summary>
+        const string ReferenceHead = "white04";
+
         static void FitToHead(GameObject part)
         {
             Archetype arch = SDCSUtils.tmpArchetype;
@@ -258,7 +260,9 @@ namespace VisibleClothing
             foreach (var smr in part.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 Mesh m = smr.sharedMesh;
-                if (m == null || m.blendShapeCount == 0 || !m.name.StartsWith("gear") || !m.name.Contains("Clothing"))
+                // any hat built for Visible Clothing (this mod or a clothing pack) carries one shape per head,
+                // named race + variant ("white04"); the reference head's shape is always there
+                if (m == null || m.blendShapeCount == 0 || m.GetBlendShapeIndex(ReferenceHead) < 0)
                     continue;
                 int idx = m.GetBlendShapeIndex(key);
                 for (int i = 0; i < m.blendShapeCount; i++)

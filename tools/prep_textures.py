@@ -17,9 +17,11 @@ import os, sys, glob, re
 import numpy as np
 from PIL import Image
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODELS = os.path.join(ROOT, "7D2D Clothing models")
-OUT = os.path.join(ROOT, "_work", "out")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import vc_pack
+ROOT = vc_pack.ROOT
+MODELS = vc_pack.MODELS          # base mod or the selected clothing pack (VC_PACK)
+OUT = vc_pack.OUT
 PATS = {
     "albedo": [r"_basecolor", r"^tripo_rgb_", r"^tripo_image_.*_0_0"],
     "normal": [r"_normal", r"^tripo_normal_", r"^tripo_image_.*_0_3"],
@@ -54,13 +56,14 @@ def load(p, mode, size):
 
 
 def prep(item):
-    folder = os.path.join(MODELS, item + ".fbm")
-    if not os.path.isdir(folder):
-        print(f"{item}: no {item}.fbm folder"); return
-    m = find(folder)
-    if "albedo" not in m:
-        print(f"{item}: no albedo found in {os.listdir(folder)}"); return
-    load(m["albedo"], "RGB", 2048).save(os.path.join(OUT, f"{item}.png"))
+    folder = vc_pack.texture_dir(item)
+    m = find(folder) if folder else {}
+    if "albedo" in m:
+        load(m["albedo"], "RGB", 2048).save(os.path.join(OUT, f"{item}.png"))
+    elif os.path.exists(os.path.join(OUT, f"{item}.png")):
+        print(f"{item}: no PBR maps ({folder or 'no texture folder'}); keeping the fitting file's albedo, matte default")
+    else:
+        print(f"{item}: no albedo found ({folder or 'no texture folder'})"); return
     note = []
     if "normal" in m:
         load(m["normal"], "RGB", 2048).save(os.path.join(OUT, f"{item}_n.png")); note.append("normal")
@@ -69,7 +72,8 @@ def prep(item):
     S = 1024
     rough = np.asarray(load(m["rough"], "L", S), np.float32) / 255 if "rough" in m else np.full((S, S), 0.8, np.float32)
     metal = np.asarray(load(m["metal"], "L", S), np.float32) / 255 if "metal" in m else np.zeros((S, S), np.float32)
-    o = OVERRIDE.get(item, {})
+    o = dict(OVERRIDE.get(item, {}), **{k_: v for k_, v in ((vc_pack.items() or {}).get(item) or {}).items()
+                                         if k_ in ("rough_min", "no_metal")})
     rough = np.maximum(rough, o.get("rough_min", 0.7))   # cloth/leather is never glossy; some Tripo roughness maps are
     if o.get("no_metal"):
         metal[:] = 0
@@ -90,6 +94,6 @@ def prep(item):
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    items = sys.argv[1:] or sorted(os.path.basename(f)[:-4] for f in glob.glob(os.path.join(MODELS, "Clothing*.fbm")))
+    items = sys.argv[1:] or list(vc_pack.items() or []) or         sorted(os.path.basename(f)[:-4] for f in glob.glob(os.path.join(MODELS, "Clothing*.fbm")))
     for it in items:
         prep(it)

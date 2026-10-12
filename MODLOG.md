@@ -142,3 +142,12 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
 - 2026-10-11 T3 mask edge covered the left eye in game: weighted to LeftEyelidBot (animated blinks). fp_safe_weights(): hats fold facial bones (eyes/eyelids) into Head; keep Head/Neck/Jaw.
 - 2026-10-11 the in-game T3 mismatch was MY non-raw rebuild (handfit tightening + hat seam closing snapped the mask's top edge to the hood opening). Removed handfit_loose from T3 and close_seams for hats; user builds hats with --raw; rebuilt T1-T3 --raw (eyelid weight fix kept: raw path uses garment_weights too). Installed.
 - 2026-10-11 RELEASE 1.0.0: zip My Mods/Nexus Upload Safe/VisibleClothing_v1.0.0.zip (um publish check PASS vs Data + 7DaysToDie_Data); Nexus BBCode release/VisibleClothing_v1.0.0_Nexus.bbcode; public repo https://github.com/Relentless757/VisibleClothing (source/tools/docs only; .gitignore excludes _work, fitting blends+textures, unity/Assets/VC, models, binaries).
+- 2026-10-11 1.1.0 FRAMEWORK: clothing packs = add-on mods (XML + bundle, no DLL) built by the same pipeline.
+  tools/vc_pack.py (VC_PACK=<pack folder>, pack.json drives items/kinds/paths; no VC_PACK = base mod, output verified
+  identical), tools/vcpack.sh new|fitting|build|install, tools/make_mod.py (ModInfo, items.xml new/replace, Localization),
+  BuildClothing.cs -vcRoot/-vcBundle, tools/extract_game_data.sh (one-time _work/ setup from the user's own game,
+  reproduces 40 files identically). DLL FitToHead: any mesh with a 'white04' blend shape is a fitted hat (was base
+  bundle only). docs/MAKING_CLOTHING.md (routes A XML / B pack tools / C conventions), examples/XmlOnlyExample,
+  examples/ExamplePack (built end to end; models/build/dist gitignored). NOT tested in game: XML example, example pack.
+  Zip My Mods/Nexus Upload Safe/VisibleClothing_v1.1.0.zip (publish check PASS vs Data + 7DaysToDie_Data), BBCode
+  release/VisibleClothing_v1.1.0_Nexus.bbcode. DLL + ModInfo installed (1.0.0 copies in _work/backup_installed_1.0.0).

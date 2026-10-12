@@ -2,14 +2,17 @@
 unity/Assets/VC/Data, and copy the textures to unity/Assets/VC/Textures.
 
 python tools/pack_unity.py [items...]   (default: every _work/out/*_male.json / *_female.json)
+With VC_PACK=<pack folder>: <pack>/build/out -> unity/Assets/VC/Packs/<name>/ (see tools/vc_pack.py).
 """
 import glob, json, os, shutil, sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WORK = os.path.join(ROOT, "_work")
-OUT = os.path.join(WORK, "out")
-VC = os.path.join(ROOT, "unity", "Assets", "VC")
-PART_NAME = {"Outfit": "bodyVC", "Hands": "handsVC", "Feet": "feetVC", "Head": "head"}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import vc_pack
+ROOT = vc_pack.ROOT
+WORK = vc_pack.BASE_WORK         # the vanilla body / skeleton / heads read from the user's game
+OUT = vc_pack.OUT                # fitted garments: base mod or the selected clothing pack
+VC = vc_pack.UNITY_DIR           # unity/Assets/VC or unity/Assets/VC/Packs/<name>
+TEX_SIZE = {}                    # texture -> max size, read by BuildClothing.cs (Data/_textures.json)
 
 
 def skeleton(sex):
@@ -31,13 +34,21 @@ def skeleton(sex):
 def pack(path):
     d = json.load(open(path))
     item, sex = d["item"], d["sex"]
-    if item.startswith("ClothingPants"):
-        return  # merged into the matching outfit below
-    if item.startswith("ClothingOutfit"):  # the outfit slot is the full body: add the matching pants
-        pp = os.path.join(OUT, f"{item.replace('Outfit', 'Pants')}_{sex}.json")
-        if os.path.exists(pp):
-            d["parts"] = d["parts"] + json.load(open(pp))["parts"]
-    kind = next(k for k in PART_NAME if f"Clothing{k}" in item)
+    kind = vc_pack.kind_of(item)
+    if kind is None:
+        print(f"{item}: unknown item, skipped"); return
+    if vc_pack.merge_target(item):
+        return  # pants merged into their outfit's prefab (the chest slot draws one model)
+    for f in glob.glob(os.path.join(OUT, f"*_{sex}.json")):   # pants that belong to this outfit
+        other = os.path.basename(f)[:-len(f"_{sex}.json")]
+        if vc_pack.merge_target(other) == item:
+            d["parts"] = d["parts"] + json.load(open(f))["parts"]
+    small = kind in ("head", "hands", "feet")   # small on screen: 1K textures; RMOE (low-frequency data) always 1K
+    for p in d["parts"]:
+        stem = os.path.splitext(p["texture"])[0]
+        TEX_SIZE[stem] = 1024 if small else max(TEX_SIZE.get(stem, 0), 2048)
+        TEX_SIZE[stem + "_n"] = TEX_SIZE[stem]
+        TEX_SIZE[stem + "_rmoe"] = 1024
     bones, bone_i = [], {}
     main_acc, child_acc = new_acc(), new_acc()
     for p in d["parts"]:
@@ -45,7 +56,7 @@ def pack(path):
         cloth = p["part"] == "strings"
         add_part(child_acc if cloth else main_acc, single_sheet(p) if cloth else p, bones, bone_i, double=not cloth)
     sx = sex.capitalize()
-    if kind == "Outfit":
+    if kind in ("outfit", "shirt", "pants"):
         # first person: SDCSUtils.RemoveFPViewObstructingGearPolygons keeps a triangle only if all 3 verts have colour r == 0
         # mark collar / shoulder tops / anything near or above the neck, like vanilla gear meshes
         nodes = {n["name"]: n for n in json.load(open(os.path.join(WORK, f"body_{sex}.json")))["nodes"]}
@@ -57,10 +68,10 @@ def pack(path):
             clip.append(1.0 if (dx * dx + dy * dy + dz * dz) ** 0.5 < 0.17 or dy > -0.03 else 0.0)
         main_acc["clip"] = clip
         print(f"  {item} {sex}: {int(sum(clip))} verts marked for first-person removal")
-    if kind == "Head":
+    if kind == "head":
         main_acc["shapeNames"], main_acc["shapeDeltas"] = head_shapes(main_acc["verts"], sex)
         print(f"  {item} {sex}: {len(main_acc['shapeNames'])} head-fit blend shapes")
-    rec = dict(prefab=f"gear{sx}{item}", part=PART_NAME[kind], sex=sx, boneNames=bones, **main_acc)
+    rec = dict(prefab=f"gear{sx}{item}", part=vc_pack.PART_OF_KIND[kind], sex=sx, boneNames=bones, **main_acc)
     if child_acc["verts"]:
         rec["child"] = dict(name="strings", **child_acc)
     os.makedirs(os.path.join(VC, "Data"), exist_ok=True)
@@ -165,6 +176,9 @@ def main():
     for f in files:
         if not items or any(os.path.basename(f).startswith(i + "_") for i in items):
             pack(f)
+    old = os.path.join(VC, "Data", "_textures.json")
+    sizes = dict(json.load(open(old)) if os.path.exists(old) and items else {}, **TEX_SIZE)
+    json.dump(sizes, open(old, "w"), indent=0)
 
 
 if __name__ == "__main__":

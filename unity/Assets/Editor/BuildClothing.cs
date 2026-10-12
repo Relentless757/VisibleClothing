@@ -1,16 +1,25 @@
-// Builds the Visible Clothing gear prefabs from Assets/VC/Data/*.json and packs them into one AssetBundle.
+// Builds the Visible Clothing gear prefabs from <root>/Data/*.json and packs them into one AssetBundle.
 // Batch:  Unity.exe -batchmode -quit -projectPath <unity> -executeMethod BuildClothing.Build
+//         [-vcRoot Assets/VC/Packs/<name>] [-vcBundle <name>.unity3d]      (clothing packs; default: the base mod)
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
 public static class BuildClothing
 {
-    const string Root = "Assets/VC";
-    const string BundleName = "visibleclothing.unity3d";
+    static string Root = "Assets/VC";
+    static string BundleName = "visibleclothing.unity3d";
+
+    static string Arg(string name, string fallback)
+    {
+        var a = Environment.GetCommandLineArgs();
+        int i = Array.IndexOf(a, name);
+        return i >= 0 && i + 1 < a.Length ? a[i + 1] : fallback;
+    }
 
     [Serializable] class Sub { public string texture; public int[] tris; }
 
@@ -47,6 +56,8 @@ public static class BuildClothing
     [MenuItem("Visible Clothing/Build")]
     public static void Build()
     {
+        Root = Arg("-vcRoot", "Assets/VC");
+        BundleName = Arg("-vcBundle", "visibleclothing.unity3d");
         Directory.CreateDirectory(Root + "/Gen");
         ImportTextures();
         var skel = new Dictionary<string, Skeleton>();
@@ -54,8 +65,11 @@ public static class BuildClothing
             skel[sex] = JsonUtility.FromJson<Skeleton>(File.ReadAllText($"{Root}/Data/skeleton_{sex}.json"));
 
         var prefabs = new List<string>();
-        foreach (var file in Directory.GetFiles(Root + "/Data", "Clothing*.json"))
+        foreach (var file in Directory.GetFiles(Root + "/Data", "*.json"))
         {
+            string fn = Path.GetFileName(file);
+            if (fn.StartsWith("skeleton_") || fn.StartsWith("_"))
+                continue;
             var g = JsonUtility.FromJson<Garment>(File.ReadAllText(file));
             prefabs.Add(MakePrefab(g, skel[g.sex.ToLowerInvariant()]));
         }
@@ -65,22 +79,31 @@ public static class BuildClothing
             AssetImporter.GetAtPath(p).SetAssetBundleNameAndVariant(BundleName, "");
         var outDir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "BundleOut"));
         Directory.CreateDirectory(outDir);
-        BuildPipeline.BuildAssetBundles(outDir, BuildAssetBundleOptions.ChunkBasedCompression | BuildAssetBundleOptions.StrictMode,
-            BuildTarget.StandaloneWindows64);
+        // only this bundle (the project may hold the base mod and several clothing packs)
+        var build = new AssetBundleBuild { assetBundleName = BundleName, assetNames = prefabs.ToArray() };
+        BuildPipeline.BuildAssetBundles(outDir, new[] { build },
+            BuildAssetBundleOptions.ChunkBasedCompression | BuildAssetBundleOptions.StrictMode, BuildTarget.StandaloneWindows64);
         Debug.Log($"[VC] built {prefabs.Count} prefabs -> {outDir}/{BundleName}");
     }
 
     static void ImportTextures()
     {
         AssetDatabase.Refresh();
+        // max size per texture from tools/pack_unity.py (small-on-screen items 1K); no hint: 2048, RMOE 1024
+        var sizes = new Dictionary<string, int>();
+        var hint = Root + "/Data/_textures.json";
+        if (File.Exists(hint))
+            foreach (Match m in Regex.Matches(File.ReadAllText(hint), @"""([^""]+)""\s*:\s*(\d+)"))
+                sizes[m.Groups[1].Value] = int.Parse(m.Groups[2].Value);
+        if (!Directory.Exists(Root + "/Textures"))
+            return;
         foreach (var path in Directory.GetFiles(Root + "/Textures", "*.png"))
         {
             var ti = (TextureImporter)AssetImporter.GetAtPath(path.Replace('\\', '/'));
             string fn = Path.GetFileNameWithoutExtension(path);
             bool normal = fn.EndsWith("_n"), rmoe = fn.EndsWith("_rmoe");
             // hats, gloves and socks are small on screen: 1K is plenty; roughness/metal/occlusion is low frequency
-            bool small = fn.StartsWith("ClothingHead") || fn.StartsWith("ClothingHands") || fn.StartsWith("ClothingFeet");
-            int max = small || rmoe ? 1024 : 2048;
+            int max = sizes.TryGetValue(fn, out int sz) ? sz : (rmoe ? 1024 : 2048);
             var type = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
             if (ti.textureType == type && ti.maxTextureSize == max && ti.anisoLevel == 8 && !ti.alphaIsTransparency
                 && ti.textureCompression == TextureImporterCompression.CompressedHQ && ti.sRGBTexture == !(normal || rmoe))

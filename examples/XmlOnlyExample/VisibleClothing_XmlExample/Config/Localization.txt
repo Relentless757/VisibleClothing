@@ -1,0 +1,3 @@
+Key,File,Type,UsedInMainMenu,NoTranslate,english
+clothingHeadXmlExampleBalaclava,items,Item,,,Scavenger's Balaclava
+clothingHeadXmlExampleBalaclavaDesc,items,Item,,,"A worn balaclava. (Visible Clothing XML-only example: reuses the ThermaCore model with Tattered stats.)"

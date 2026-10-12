@@ -1,0 +1,24 @@
+<configs>
+	<!-- A new clothing item that reuses a model shipped in Visible Clothing's bundle.
+	     - Extends: an existing clothing item, so it goes in the same clothing slot (head / chest / hands / feet).
+	     - Prefab: "@modfolder(VisibleClothing):" points into the VisibleClothing mod folder; {sex} becomes Male/Female.
+	       Base models: gear{sex}ClothingHeadT1..T3, gear{sex}ClothingOutfitT1..T3 (shirt + pants),
+	       gear{sex}ClothingHandsT1..T3, gear{sex}ClothingFeetT1..T3.
+	     - TransformName must match the model: head = "head", outfit = "bodyVC", gloves = "handsVC", socks = "feetVC".
+	     Visible Clothing's DLL does the rest: hidden while armor in that slot is shown, game shader, fitted to every head.
+	-->
+	<append xpath="/items">
+		<item name="clothingHeadXmlExampleBalaclava">
+			<property name="Extends" value="clothingHeadT1"/>
+			<property name="CustomIcon" value="clothingHeadT3"/>
+			<property name="DescriptionKey" value="clothingHeadXmlExampleBalaclavaDesc"/>
+			<property class="SDCS">
+				<property name="Prefab" value="#@modfolder(VisibleClothing):Resources/VisibleClothing.unity3d?gear{sex}ClothingHeadT3"/>
+				<property name="TransformName" value="head"/>
+				<property name="Excludes" value=""/>
+				<property name="HairMaskType" value="None"/>
+				<property name="FacialHairMaskType" value="None"/>
+			</property>
+		</item>
+	</append>
+</configs>
