@@ -159,3 +159,10 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   built by geo_garment.py (auto fit), NOT from_fitting_blend (that gives different T2/T3 outfits). Using unclip() with
   glove points (like boots) ran away (cuff moved 8-13 cm). tools/glove_check.py: male T2 sleeve verts under gloves
   178/39/212 -> 8/5/8. Bundle installed; 1.1.0 zip rebuilt.
+- 2026-10-11 user re-did T2 shirt from a fresh FBX import + Elastic Grab on the sleeves: Elastic Grab moves the whole
+  mesh (Kelvinlet), stretched edges up to 3x over the waist -> texture smear. Fixed by ARAP relaxation toward the
+  import's edge lengths with soft data term (lam 0.1) + body collision 3 mm + seam ties (scratchpad arap2.py), handed
+  over as fitting/T2_relaxed.blend; user touched up, built T2 --raw. User then refit T2 gloves (wider cuff: 240 T2
+  sleeve verts inside) and T3 head. from_fitting_blend --raw now still runs push_over for shirts (only sleeve verts in a
+  glove move; female derived from the pre-push shape). Rebuilt T2 (--raw) + T3 (geo_garment) outfits; glove_check:
+  T2 0/0/0. 1.1.0 zip rebuilt (publish check PASS). Install pending (game running).

@@ -163,6 +163,12 @@ def process(item, male, female, raw):
         pre = vb.verts_np(g)
         if raw:   # the shape exactly as modelled; weights the same way as the automatic fit
             anchors = [(lambda r: r[2] if r else None)(surf.nearest(v, {reg[i]})) for i, v in enumerate(pre)]
+            if kind in ("outfit", "shirt") and c.get("over_gloves", True):
+                # the one clean-up raw shirts still get: sleeve ends that are inside a glove go over it
+                c["_before_over"] = pre.copy()
+                gloves = gg.glove_objs(sex)
+                if gloves:
+                    gg.push_over(g, gloves, surf, nb)
             w = gg.garment_weights(g, surf, reg, c, kind, B, nb)
         elif kind == "hands":
             # gloves are fitted snug by hand: keep the shape exactly; only verts actually inside the skin step out to

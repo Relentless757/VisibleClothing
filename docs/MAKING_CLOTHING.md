@@ -110,7 +110,8 @@ All commands run in **Git Bash** from the repository folder, with the game close
 
 Without `--raw` the build also: pushes cloth out of the skin, keeps layering (shirts over the head and their pants,
 pants over boots and shoes, shirt sleeves over every glove, `under` garments pulled under), closes slits between separate shirt panels, and adds
-fist clearance to gloves. Hats always skip the seam closing; gloves only get pushed out where they are inside the skin.
+fist clearance to gloves. Hats always skip the seam closing; gloves only get pushed out where they are inside the skin. Even with `--raw`, shirt
+sleeve ends that are inside a glove are pushed out over it (`over_gloves`).
 
 ### `pack.json`
 
