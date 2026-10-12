@@ -50,3 +50,8 @@ Checks: `tools/pose_test.py` (posed renders), `tools/layer_check.py`, `tools/boo
 
 By Elisk. 3D models generated with Tripo AI and hand-fitted in Blender; the fitting pipeline, code and packaging
 were built with AI assistance (Claude). 7 Days to Die is by The Fun Pimps; no game files are included.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Covers the code and tools in this repository. 7 Days to Die and its assets belong to
+The Fun Pimps and are not covered.
