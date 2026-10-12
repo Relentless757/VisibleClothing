@@ -1,0 +1,94 @@
+<configs>
+	<!-- Visible Clothing: give the 3.2 clothing items a model. The DLL hides each one while the
+	     matching armor piece is drawn (equipped and not set to Hidden in the cosmetic menu). -->
+	<append xpath="/items/item[@name='clothingHeadT1']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingHeadT1"/>
+			<property name="TransformName" value="head"/>
+			<property name="Excludes" value=""/>
+			<property name="HairMaskType" value="Hat"/>
+			<property name="FacialHairMaskType" value="Full"/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingHeadT2']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingHeadT2"/>
+			<property name="TransformName" value="head"/>
+			<property name="Excludes" value=""/>
+			<property name="HairMaskType" value="Hat"/>
+			<property name="FacialHairMaskType" value="Full"/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingHeadT3']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingHeadT3"/>
+			<property name="TransformName" value="head"/>
+			<property name="Excludes" value=""/>
+			<property name="HairMaskType" value="None"/>
+			<property name="FacialHairMaskType" value="None"/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingOutfitT1']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingOutfitT1"/>
+			<property name="TransformName" value="bodyVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingOutfitT2']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingOutfitT2"/>
+			<property name="TransformName" value="bodyVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingOutfitT3']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingOutfitT3"/>
+			<property name="TransformName" value="bodyVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingHandsT1']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingHandsT1"/>
+			<property name="TransformName" value="handsVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingHandsT2']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingHandsT2"/>
+			<property name="TransformName" value="handsVC"/>
+			<property name="Excludes" value="hands"/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingHandsT3']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingHandsT3"/>
+			<property name="TransformName" value="handsVC"/>
+			<property name="Excludes" value="hands"/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingFeetT1']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingFeetT1"/>
+			<property name="TransformName" value="feetVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingFeetT2']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingFeetT2"/>
+			<property name="TransformName" value="feetVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+	<append xpath="/items/item[@name='clothingFeetT3']">
+		<property class="SDCS">
+			<property name="Prefab" value="#@modfolder:Resources/VisibleClothing.unity3d?gear{sex}ClothingFeetT3"/>
+			<property name="TransformName" value="feetVC"/>
+			<property name="Excludes" value=""/>
+		</property>
+	</append>
+</configs>

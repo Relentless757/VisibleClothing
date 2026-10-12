@@ -1,0 +1,34 @@
+# --- derived from the game's own files (never published) ---
+# extracted body / heads / boots, fit outputs
+_work/
+# the fitting file contains the game's body and head meshes
+fitting/*.blend
+fitting/*.blend1
+# generated Unity data (vanilla skeleton, fitted meshes), textures, materials, prefabs
+unity/Assets/VC/
+unity/Assets/VC.meta
+previews/
+preview_*.png
+
+# --- large binaries / build output (the release zip is on Nexus) ---
+# source 3D models (Tripo), not part of the repository
+7D2D Clothing models/
+Mod/VisibleClothing/VisibleClothing.dll
+Mod/VisibleClothing/Resources/
+unity/BundleOut/
+unity/Library/
+unity/Logs/
+unity/Temp/
+unity/obj/
+unity/UserSettings/
+src/bin/
+src/obj/
+
+# --- misc ---
+__pycache__/
+*.pyc
+*.bak_gamma
+.vs/
+
+# hand-fitting textures (copies of the model textures)
+fitting/textures/

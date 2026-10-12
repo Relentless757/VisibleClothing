@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xml>
+	<Name value="VisibleClothing" />
+	<DisplayName value="Visible Clothing" />
+	<Version value="1.0.0" />
+	<Description value="Gives the 12 clothing items (cap liners, undergarments with pants, glove liners, socks) real 3D models, shown whenever the matching armor slot is empty or that armor piece is set to Hidden in the cosmetics menu. Contains a DLL: EAC must be off. In multiplayer install on the server and every client." />
+	<Author value="Elisk" />
+	<Website value="https://github.com/Relentless757/VisibleClothing" />
+</xml>
