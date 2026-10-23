@@ -166,3 +166,17 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   sleeve verts inside) and T3 head. from_fitting_blend --raw now still runs push_over for shirts (only sleeve verts in a
   glove move; female derived from the pre-push shape). Rebuilt T2 (--raw) + T3 (geo_garment) outfits; glove_check:
   T2 0/0/0. 1.1.0 zip rebuilt (publish check PASS). Install pending (game running).
+- 2026-10-23 IGP_Classic (IZY) weapons carry their own FP arms; buff IZYGlovesEffect (IGP_Classic/Config/IZY26513/
+  7D1.0_Izayo_Visible_FPV_Gloves_mod/buffs.xml, requirement IsFPV + item tag IZY) hides the player's "hands",
+  "hands_A", "body" with MinEventActionSetTransformActive (no parent_transform -> GameUtils.FindDeepChild(RootTransform)).
+  Our "handsVC"/"bodyVC" stayed visible over the weapon's arms. DLL SetTransformActivePatch (postfix on Execute):
+  hands/hands_A -> handsVC, body -> bodyVC, same active state, sibling of the switched vanilla part (Stitch instantiates
+  every part under the same parent). Generic for any mod hiding arms this way. Built; install pending (game running).
+  Fix 2: MeleeOverhaulProto (PackArms.cs Patch_KeepPlayerArms) refuses the pack's hides with a prefix returning false;
+  Harmony still runs postfixes -> our gloves vanished while vanilla arms stayed. Postfix now checks __runOriginal
+  (Harmony 2.13). Also: full gloves (Excludes=hands) DESTROY the vanilla "hands" (SDCSUtils: BaseToTurnOff ->
+  Object.Destroy), so the sibling-of-vanilla lookup failed now and then (user needed a view toggle). Our part is now
+  found by its own name with the same GameUtils.FindDeepChild(RootTransform) the action uses -> same rig.
+- 2026-10-23 RELEASE 1.1.1: IGP/IZY first-person arms compatibility (SetTransformActivePatch), user-verified in game with
+  IGP weapons (T1-T3 gloves) and MeleeOverhaulProto vanilla-arms on. Zip My Mods/Nexus Upload Safe/VisibleClothing_v1.1.1.zip
+  (publish check PASS), BBCode release/VisibleClothing_v1.1.1_Nexus.bbcode.

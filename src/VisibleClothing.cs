@@ -351,4 +351,54 @@ namespace VisibleClothing
             }
         }
     }
+
+    /// <summary>
+    /// Weapon mods with their own first-person arms (IGP / IZY Classic and others) hide the player's arms with the
+    /// SetTransformActive action on the "hands", "hands_A" and "body" parts. Our gloves and shirts are separate parts
+    /// ("handsVC", "bodyVC") next to those, so mirror the change onto them; otherwise they float over the weapon's arms.
+    /// Only when the action really ran: a mod that keeps the player's arms (MeleeOverhaulProto) skips it in a prefix.
+    /// Our part is looked up by its own name, the same way the action looks up the vanilla one, so it is found in the
+    /// same rig even when the vanilla part is gone (full gloves remove "hands": Excludes).
+    /// </summary>
+    [HarmonyPatch(typeof(MinEventActionSetTransformActive), nameof(MinEventActionSetTransformActive.Execute))]
+    public static class SetTransformActivePatch
+    {
+        static readonly AccessTools.FieldRef<MinEventActionSetTransformActive, string> pathRef =
+            AccessTools.FieldRefAccess<MinEventActionSetTransformActive, string>("transformPath");
+        static readonly AccessTools.FieldRef<MinEventActionSetTransformActive, string> parentRef =
+            AccessTools.FieldRefAccess<MinEventActionSetTransformActive, string>("parent_transform");
+        static readonly AccessTools.FieldRef<MinEventActionSetTransformActive, bool> activeRef =
+            AccessTools.FieldRefAccess<MinEventActionSetTransformActive, bool>("isActive");
+
+        static string OurPart(string vanilla)
+        {
+            if (vanilla.Equals("hands", StringComparison.OrdinalIgnoreCase) || vanilla.Equals("hands_A", StringComparison.OrdinalIgnoreCase))
+                return "handsVC";
+            if (vanilla.Equals("body", StringComparison.OrdinalIgnoreCase))
+                return "bodyVC";
+            return null;
+        }
+
+        static void Postfix(MinEventActionSetTransformActive __instance, MinEventParams _params, bool __runOriginal)
+        {
+            try
+            {
+                if (!__runOriginal)
+                    return;
+                string path = pathRef(__instance);
+                string ours = path != null ? OurPart(path) : null;
+                if (ours == null || !string.IsNullOrEmpty(parentRef(__instance)) || _params?.Self == null
+                    || _params.Self.RootTransform == null)
+                    return;
+                Transform part = GameUtils.FindDeepChild(_params.Self.RootTransform, ours);
+                bool active = activeRef(__instance);
+                if (part != null && part.gameObject.activeSelf != active)
+                    part.gameObject.SetActive(active);
+            }
+            catch (Exception e)
+            {
+                Log.Warning("[VisibleClothing] mirroring a hidden arm part failed: " + e.Message);
+            }
+        }
+    }
 }

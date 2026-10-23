@@ -1,0 +1,96 @@
+[center][size=6][b]Visible Clothing[/b][/size]
+[size=3][i]Version 1.1.1  |  Author: Elisk  |  7 Days to Die V3.2 (tested on b10)[/i][/size][/center]
+
+[line]
+
+[size=4][b]Overview[/b][/size]
+
+In V3.2, the clothing worn under armor for cold protection is invisible on your character. Visible Clothing gives all 12 of these items real 3D models, so the layers under your armor show up in game.
+
+[size=4][b]What it adds[/b][/size]
+
+[list]
+[*][b]Head:[/b] Tattered Cap Liner, Patchwork Cap Liner, ThermaCore Cap Liner (the ThermaCore one is a full balaclava with face mask)
+[*][b]Body:[/b] Tattered Undergarments, Patchwork Long Underwear, ThermaCore Combat Layer (each is a shirt plus matching pants)
+[*][b]Hands:[/b] Tattered Glove Liners (fingerless), Patchwork Glove Liners (full gloves), ThermaCore Glove Liners (full gloves)
+[*][b]Feet:[/b] Tattered Socks, Patchwork Socks, ThermaCore Socks
+[/list]
+
+Male and female versions of every piece are included.
+
+[size=4][b]When clothing is shown[/b][/size]
+
+A clothing piece is drawn only when its matching armor slot (head, chest, hands or feet) is empty, or when that armor piece is set to "Hidden" in the cosmetics menu. If armor is visible in that slot, the clothing underneath stays hidden, so the armor looks exactly as it does in vanilla.
+
+[size=4][b]Details[/b][/size]
+
+[list]
+[*]Hats are morphed to fit each of the 16 head and face shapes (4 races x 4 faces, for each sex), so they sit the same on every character.
+[*]Uses the game's own character shader, so lighting matches vanilla gear.
+[*]First person: collar and shoulder parts are clipped from view, like vanilla gear. Full gloves hide the hand underneath, like vanilla gloves. Hand-fitted gloves follow the fingers in first-person animations.
+[*]Pants are fitted to go over vanilla boots (the game's short-shaft boot variant is used where one exists) and over the mod's own socks.
+[*]Tattered pants have drawstrings with cloth physics.
+[/list]
+
+[size=4][b]Requirements[/b][/size]
+
+[list]
+[*][b]Easy Anti-Cheat must be OFF.[/b] The mod contains a DLL and Harmony patches.
+[*][b]Multiplayer:[/b] the mod must be installed on the server and on every client.
+[/list]
+
+[size=4][b]Installation[/b][/size]
+
+[list]
+[*]Extract the zip into your 7 Days To Die "Mods" folder.
+[*]Check that you now have a folder at Mods/VisibleClothing/ containing ModInfo.xml, Config, Resources and VisibleClothing.dll.
+[/list]
+
+It is safe to add this mod to an existing save. It adds no new items or blocks; it only changes how the existing clothing looks.
+
+[size=4][b]Uninstall[/b][/size]
+
+Delete the Mods/VisibleClothing folder. It is safe to remove from an existing save for the same reason.
+
+[size=4][b]Compatibility[/b][/size]
+
+This mod patches the game's character equipment building code (SDCSUtils.setupEquipment and Stitch, plus the boot variant lookup) and appends model data to the 12 clothing items in items.xml. Other mods that also give these clothing items a model, or that replace the player character system, may conflict. Weapon mods that replace the first-person arms (IGP / IZY Classic) are supported: the clothing hides along with the player's arms. Armor and vanilla gear are not changed.
+
+[size=4][b]Known limitations[/b][/size]
+
+[list]
+[*]Hats have not been checked with every hairstyle. Very large hairstyles may poke through.
+[*]The balaclava's face mask is shaped for the faces in the base game only.
+[/list]
+
+[size=4][b]For modders: make your own visible clothing[/b][/size]
+
+Visible Clothing is also a framework. With it installed, any clothing-slot item that has a model gets the same treatment: hidden under shown armor, the game's own shader, hats fitted to every head. Add-ons are plain XML + asset bundle mods (no DLL of their own) that require Visible Clothing.
+
+[list]
+[*][b]XML only:[/b] new items that reuse this mod's models (a ready example mod is in the repository).
+[*][b]Clothing packs:[/b] the same Blender/Unity tools used for this mod fit your own models to the game body, skin them, make the female versions, fit hats to all 16 heads and write the add-on mod for you. You need your own copy of the game, Blender and Unity; nothing from the game is in the repository.
+[*][b]Your own pipeline:[/b] the conventions a bundle must follow are documented.
+[/list]
+
+Guide: [url=https://github.com/Relentless757/VisibleClothing/blob/main/docs/MAKING_CLOTHING.md]docs/MAKING_CLOTHING.md[/url]
+
+[size=4][b]Changelog[/b][/size]
+
+[list]
+[*][b]1.1.1:[/b] compatibility with weapon mods that bring their own first-person arms (IGP / IZY Classic and others that hide the player's arms): the glove liners and shirt sleeves now hide together with the player's arms. Mods that keep the player's arms (e.g. MeleeOverhaulProto's vanilla-arms option) keep showing them.
+[*][b]1.1.0:[/b] framework release. Hat fitting works for any add-on hat (not only this mod's), modder guide, example add-ons and pack tools. Patchwork and ThermaCore shirt sleeves now lie over the glove liners instead of clipping through them. Refitted Patchwork Long Underwear shirt (sleeves), Patchwork Glove Liners and ThermaCore Cap Liner.
+[*][b]1.0.0:[/b] first release.
+[/list]
+
+[size=4][b]Credits[/b][/size]
+
+[list]
+[*]3D models were generated with Tripo AI and hand-fitted by the author in Blender.
+[*]The fitting pipeline, code and packaging were built with AI assistance (Claude).
+[*]No game files are included.
+[/list]
+
+[size=4][b]Source code[/b][/size]
+
+[url=https://github.com/Relentless757/VisibleClothing]https://github.com/Relentless757/VisibleClothing[/url]
