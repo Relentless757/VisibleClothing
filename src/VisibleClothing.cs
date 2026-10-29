@@ -25,8 +25,10 @@ namespace VisibleClothing
 
     /// <summary>
     /// The clothing items carry SDCS data (Config/items.xml), so vanilla's setupEquipment would draw them
-    /// in addition to armor. While it runs, blank out each clothing slot whose matching armor slot is
-    /// actually drawn; an empty armor slot, or one set to Hidden in the cosmetic menu, lets clothing show.
+    /// in addition to armor. While it runs, each clothing slot whose matching armor slot is actually drawn reads
+    /// as empty (GetSlotItemPatch); an empty armor slot, or one set to Hidden in the cosmetic menu, lets clothing show.
+    /// setupEquipment reads every slot through Equipment.GetSlotItem in V3.2 (an ItemValue array) and V3.3+ (an
+    /// ItemStackGrid), so nothing in the equipment itself is changed.
     /// </summary>
     [HarmonyPatch]
     public static class SetupEquipmentPatch
@@ -38,11 +40,9 @@ namespace VisibleClothing
         /// <summary>True while setupEquipment builds a character whose Visible Clothing outfit is drawn.</summary>
         public static bool OutfitDrawn;
 
-        public struct State
-        {
-            public ItemValue[] Slots;
-            public ItemValue[] Saved;
-        }
+        /// <summary>Clothing slots that read as empty while setupEquipment runs (bit = slot index).</summary>
+        public static int Suppressed;
+        public static Equipment SuppressedEq;
 
         static MethodBase Target() => AccessTools.Method(typeof(SDCSUtils), "setupEquipment", new[]
         {
@@ -61,44 +61,36 @@ namespace VisibleClothing
 
         static MethodBase TargetMethod() => Target();
 
-        static bool ArmorDrawn(Equipment eq, ItemValue[] slots, int k, bool ignoreDlc, bool useTempCosmetics)
+        static bool HasModel(Equipment eq, int slot) => eq.GetSlotItem(slot)?.ItemClass?.SDCSData != null;
+
+        static bool ArmorDrawn(Equipment eq, int k, bool ignoreDlc, bool useTempCosmetics)
         {
             // mirrors the slot test in SDCSUtils.setupEquipment
             ItemClass cosmetic = eq.GetCosmeticSlot(k, useTempCosmetics);
             if (cosmetic == ItemClass.MissingItem)
                 return false; // "Hidden"
-            bool armor = slots[k]?.ItemClass?.SDCSData != null;
+            bool armor = HasModel(eq, k);
             bool cos = cosmetic != null && (useTempCosmetics || (armor && (ignoreDlc || eq.HasCosmeticUnlocked(cosmetic).isUnlocked)));
             return armor || cos;
         }
 
-        static void Prefix(EntityAlive entity, bool _ignoreDlcEntitlements, bool useTempCosmetics, out State __state)
+        static void Prefix(EntityAlive entity, bool _ignoreDlcEntitlements, bool useTempCosmetics)
         {
-            __state = default;
+            Suppressed = 0;
+            SuppressedEq = null;
             try
             {
                 Equipment eq = entity?.equipment;
-                if (eq == null)
-                    return;
-                ItemValue[] slots = eq.GetItems(); // the live array; restored in the finalizer
-                if (slots == null || slots.Length < ClothingOffset + Pairs)
+                if (eq == null || eq.GetSlotCount() < ClothingOffset + Pairs)
                     return;
                 int chest = (int)EquipmentSlots.Chest;
-                OutfitDrawn = slots[ClothingOffset + chest]?.ItemClass?.SDCSData != null
-                              && !ArmorDrawn(eq, slots, chest, _ignoreDlcEntitlements, useTempCosmetics);
+                OutfitDrawn = HasModel(eq, ClothingOffset + chest) && !ArmorDrawn(eq, chest, _ignoreDlcEntitlements, useTempCosmetics);
+                int mask = 0;
                 for (int k = 0; k < Pairs; k++)
-                {
-                    int c = ClothingOffset + k;
-                    if (slots[c]?.ItemClass?.SDCSData == null || !ArmorDrawn(eq, slots, k, _ignoreDlcEntitlements, useTempCosmetics))
-                        continue;
-                    if (__state.Saved == null)
-                    {
-                        __state.Slots = slots;
-                        __state.Saved = new ItemValue[Pairs];
-                    }
-                    __state.Saved[k] = slots[c];
-                    slots[c] = null;
-                }
+                    if (HasModel(eq, ClothingOffset + k) && ArmorDrawn(eq, k, _ignoreDlcEntitlements, useTempCosmetics))
+                        mask |= 1 << (ClothingOffset + k);
+                SuppressedEq = eq;
+                Suppressed = mask;
             }
             catch (Exception e)
             {
@@ -106,11 +98,11 @@ namespace VisibleClothing
             }
         }
 
-        static void Postfix(EntityAlive entity, State __state)
+        static void Postfix(EntityAlive entity)
         {
             try
             {
-                ApplyHairMask(entity, __state);
+                ApplyHairMask(entity);
             }
             catch (Exception e)
             {
@@ -118,16 +110,15 @@ namespace VisibleClothing
             }
         }
 
-        static void ApplyHairMask(EntityAlive entity, State __state)
+        static void ApplyHairMask(EntityAlive entity)
         {
             // vanilla only takes hair masks from Head armor; a visible clothing hat needs them too
-            if (!(entity?.emodel is EModelSDCS emodel))
+            if (!(entity?.emodel is EModelSDCS emodel) || entity.equipment == null)
                 return;
-            ItemValue[] slots = entity.equipment?.GetItems();
             int c = ClothingOffset + (int)EquipmentSlots.Head;
-            if (slots == null || slots.Length <= c || (__state.Saved != null && __state.Saved[0] != null))
-                return;
-            SDCSUtils.SlotData sd = slots[c]?.ItemClass?.SDCSData;
+            if (entity.equipment.GetSlotCount() <= c || (Suppressed & (1 << c)) != 0)
+                return;  // no hat slot, or the hat is under a drawn helmet
+            SDCSUtils.SlotData sd = entity.equipment.GetSlotItem(c)?.ItemClass?.SDCSData;
             if (sd == null)
                 return;
             if (sd.HairMaskType > emodel.HairMaskType)
@@ -136,14 +127,24 @@ namespace VisibleClothing
                 emodel.FacialHairMaskType = sd.FacialHairMaskType;
         }
 
-        static Exception Finalizer(Exception __exception, State __state)
+        static Exception Finalizer(Exception __exception)
         {
             OutfitDrawn = false;
-            if (__state.Saved != null)
-                for (int k = 0; k < Pairs; k++)
-                    if (__state.Saved[k] != null)
-                        __state.Slots[ClothingOffset + k] = __state.Saved[k];
+            Suppressed = 0;
+            SuppressedEq = null;
             return __exception;
+        }
+    }
+
+    /// <summary>While setupEquipment runs: a clothing slot under drawn armor reads as empty.</summary>
+    [HarmonyPatch(typeof(Equipment), nameof(Equipment.GetSlotItem))]
+    public static class GetSlotItemPatch
+    {
+        static void Postfix(Equipment __instance, int index, ref ItemValue __result)
+        {
+            if (SetupEquipmentPatch.Suppressed != 0 && (uint)index < 32u
+                && (SetupEquipmentPatch.Suppressed & (1 << index)) != 0 && __instance == SetupEquipmentPatch.SuppressedEq)
+                __result = ItemValue.None;
         }
     }
 
@@ -301,24 +302,36 @@ namespace VisibleClothing
     /// short shaft) picked from GearVariantMatrix for vanilla outfits; for ours, ask for whichever of feet / feet_A
     /// has the shorter shaft.
     /// The pants are fitted to clear every vanilla boot (feet_A where it exists) and our clothing shoes.
+    /// V3.2/3.3 ask GearVariantMatrixSO for the variant, V3.4 GearFitMatrixSO (same method); patch whichever exist.
     /// </summary>
     [HarmonyPatch]
     public static class BootVariantPatch
     {
         static readonly Dictionary<string, bool> hasShortShaft = new Dictionary<string, bool>();
 
-        static MethodBase Target() => AccessTools.Method(typeof(GearVariants.GearVariantMatrixSO), "GetVariantOrEmpty",
-            new[] { typeof(string), typeof(string), typeof(string), typeof(string) });
+        static readonly string[] Matrices = { "GearVariants.GearFitMatrixSO", "GearVariants.GearVariantMatrixSO" };
+
+        static IEnumerable<MethodBase> Targets()
+        {
+            foreach (string name in Matrices)
+            {
+                Type t = AccessTools.TypeByName(name);
+                MethodBase m = t != null ? AccessTools.Method(t, "GetVariantOrEmpty",
+                    new[] { typeof(string), typeof(string), typeof(string), typeof(string) }) : null;
+                if (m != null)
+                    yield return m;
+            }
+        }
 
         static bool Prepare()
         {
-            if (Target() != null)
+            if (Targets().Any())
                 return true;
-            Log.Warning("[VisibleClothing] GearVariantMatrixSO.GetVariantOrEmpty not found; boots keep their tall shafts under our pants");
+            Log.Warning("[VisibleClothing] GetVariantOrEmpty (GearFitMatrixSO / GearVariantMatrixSO) not found; boots keep their tall shafts under our pants");
             return false;
         }
 
-        static MethodBase TargetMethod() => Target();
+        static IEnumerable<MethodBase> TargetMethods() => Targets();
 
         static float Top(GameObject prefab, string part)
         {
