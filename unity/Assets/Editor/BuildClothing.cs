@@ -89,7 +89,7 @@ public static class BuildClothing
     static void ImportTextures()
     {
         AssetDatabase.Refresh();
-        // max size per texture from tools/pack_unity.py (small-on-screen items 1K); no hint: 2048, RMOE 1024
+        // max size per texture from tools/pack_unity.py (outfits 4K, head / hands / feet 2K, RMOE half); no hint: 2048, RMOE 1024
         var sizes = new Dictionary<string, int>();
         var hint = Root + "/Data/_textures.json";
         if (File.Exists(hint))

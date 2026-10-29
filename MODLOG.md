@@ -191,3 +191,9 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   SDCSUtils.getPartNameWithVariant asks GearFitMatrixSO (not GearVariantMatrixSO) -> BootVariantPatch patches
   whichever of the two exists (same GetVariantOrEmpty signature). One DLL, byte-identical when built against 3.2,
   3.3 and 3.4. Installed into both test installs; not tested in game yet.
+- 2026-10-28 texel density: sources are 4096 (HandsT3 2048) but builds were capped at 2048 (outfits) / 1024 (head,
+  hands, feet), RMOE 1024. Measured px/m: ours outfits 1480-2340, hats 1600-2070, gloves 2700-3650, socks 1230-1910;
+  vanilla (DXT5, body 4096 / head-hands-feet 2048, all maps) body 1750-2650, head ~4000, hands ~6000-8600, feet
+  ~2800-4800. Tripo UV use 60-68% (vanilla 75-95%). Now prep_textures keeps source size (cap 4096), pack_unity hints
+  outfits 4096 / small 2048 / RMOE half. Verified prep reproduces the old 45 PNGs byte-identically first. Bundle
+  105 MB -> 300 MB (BC7). Old bundle in _work/backup_1.1.1/.

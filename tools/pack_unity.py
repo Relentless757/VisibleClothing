@@ -43,12 +43,13 @@ def pack(path):
         other = os.path.basename(f)[:-len(f"_{sex}.json")]
         if vc_pack.merge_target(other) == item:
             d["parts"] = d["parts"] + json.load(open(f))["parts"]
-    small = kind in ("head", "hands", "feet")   # small on screen: 1K textures; RMOE (low-frequency data) always 1K
+    # vanilla gear's sizes: outfits 4096, head / hands / feet 2048; RMOE (low-frequency data) at half
+    small = kind in ("head", "hands", "feet")
     for p in d["parts"]:
         stem = os.path.splitext(p["texture"])[0]
-        TEX_SIZE[stem] = 1024 if small else max(TEX_SIZE.get(stem, 0), 2048)
+        TEX_SIZE[stem] = 2048 if small else max(TEX_SIZE.get(stem, 0), 4096)
         TEX_SIZE[stem + "_n"] = TEX_SIZE[stem]
-        TEX_SIZE[stem + "_rmoe"] = 1024
+        TEX_SIZE[stem + "_rmoe"] = TEX_SIZE[stem] // 2
     bones, bone_i = [], {}
     main_acc, child_acc = new_acc(), new_acc()
     for p in d["parts"]:

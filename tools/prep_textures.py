@@ -1,8 +1,10 @@
 """Collect each item's Tripo PBR maps from `7D2D Clothing models/<Item>.fbm/` and write what Unity's Standard
 game's character shader (Game/Character) wants into _work/out/:
-    <Item>.png       albedo (2048)
-    <Item>_n.png     normal map (2048, OpenGL / +Y like Unity)
-    <Item>_rmoe.png  R = roughness, G = metallic, B = occlusion (1), A = emission (0)  (1024; low-frequency data)
+    <Item>.png       albedo (source size, at most 4096)
+    <Item>_n.png     normal map (same size, OpenGL / +Y like Unity)
+    <Item>_rmoe.png  R = roughness, G = metallic, B = occlusion (1), A = emission (0)  (half that; low-frequency data)
+The size each map is built at in the bundle is set per item by tools/pack_unity.py (TEX_SIZE): like vanilla gear,
+outfits 4096 and head / hands / feet 2048, roughness-metallic at half.
                      -- the same packing as vanilla gear's _RMOE maps
 
 python tools/prep_textures.py [Item ...]
@@ -50,26 +52,34 @@ def find(folder):
     return got
 
 
-def load(p, mode, size):
+MAX_SIZE = 4096
+
+
+def load(p, mode, size=None):
+    """size None: the source size, capped at MAX_SIZE."""
     im = Image.open(p).convert(mode)
+    size = size or min(max(im.size), MAX_SIZE)
     return im.resize((size, size), Image.LANCZOS) if im.size != (size, size) else im
 
 
 def prep(item):
     folder = vc_pack.texture_dir(item)
     m = find(folder) if folder else {}
+    size = None
     if "albedo" in m:
-        load(m["albedo"], "RGB", 2048).save(os.path.join(OUT, f"{item}.png"))
+        alb = load(m["albedo"], "RGB")
+        size = alb.size[0]
+        alb.save(os.path.join(OUT, f"{item}.png"))
     elif os.path.exists(os.path.join(OUT, f"{item}.png")):
         print(f"{item}: no PBR maps ({folder or 'no texture folder'}); keeping the fitting file's albedo, matte default")
     else:
         print(f"{item}: no albedo found ({folder or 'no texture folder'})"); return
     note = []
     if "normal" in m:
-        load(m["normal"], "RGB", 2048).save(os.path.join(OUT, f"{item}_n.png")); note.append("normal")
+        load(m["normal"], "RGB", size).save(os.path.join(OUT, f"{item}_n.png")); note.append("normal")
     elif os.path.exists(os.path.join(OUT, f"{item}_n.png")):
         os.remove(os.path.join(OUT, f"{item}_n.png"))
-    S = 1024
+    S = max(1024, (size or 2048) // 2)
     rough = np.asarray(load(m["rough"], "L", S), np.float32) / 255 if "rough" in m else np.full((S, S), 0.8, np.float32)
     metal = np.asarray(load(m["metal"], "L", S), np.float32) / 255 if "metal" in m else np.zeros((S, S), np.float32)
     o = dict(OVERRIDE.get(item, {}), **{k_: v for k_, v in ((vc_pack.items() or {}).get(item) or {}).items()
