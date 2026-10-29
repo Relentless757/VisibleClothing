@@ -37,6 +37,8 @@ OVERRIDE = {
     "ClothingHeadT1": dict(rough_min=0.85, no_metal=True),   # knit hats / balaclava: wool, no metal
     "ClothingHeadT2": dict(rough_min=0.85, no_metal=True),
     "ClothingHeadT3": dict(rough_min=0.85, no_metal=True),
+    # flat colour + an almost empty normal map: read as plastic in game -> surface grain (tools/surface_grain.py)
+    "ClothingHandsT3": dict(grain=dict(mm=1.2, strength=1.0)),
 }
 
 
@@ -83,7 +85,7 @@ def prep(item):
     rough = np.asarray(load(m["rough"], "L", S), np.float32) / 255 if "rough" in m else np.full((S, S), 0.8, np.float32)
     metal = np.asarray(load(m["metal"], "L", S), np.float32) / 255 if "metal" in m else np.zeros((S, S), np.float32)
     o = dict(OVERRIDE.get(item, {}), **{k_: v for k_, v in ((vc_pack.items() or {}).get(item) or {}).items()
-                                         if k_ in ("rough_min", "no_metal")})
+                                         if k_ in ("rough_min", "no_metal", "grain")})
     rough = np.maximum(rough, o.get("rough_min", 0.7))   # cloth/leather is never glossy; some Tripo roughness maps are
     if o.get("no_metal"):
         metal[:] = 0
@@ -99,6 +101,17 @@ def prep(item):
     if os.path.exists(old_ms):
         os.remove(old_ms)
     note.append(f"rough {rough.mean():.2f} metal {metal.mean():.2f}")
+    if o.get("grain"):
+        fitted = os.path.join(OUT, f"{item}_male.json")
+        if os.path.exists(fitted):
+            import surface_grain
+            g = dict(o["grain"])
+            surface_grain.apply(fitted, os.path.join(OUT, f"{item}.png"), os.path.join(OUT, f"{item}_n.png"),
+                                os.path.join(OUT, f"{item}_rmoe.png"), mm=g.get("mm", 1.2), strength=g.get("strength", 1.0),
+                                one_hand=vc_pack.kind_of(item) == "hands")
+            note.append(f"surface grain {g.get('mm', 1.2)} mm x{g.get('strength', 1.0)}")
+        else:
+            note.append("grain skipped: fit it first (no fitted mesh)")
     print(f"{item}: albedo + {', '.join(note) or 'nothing else'}")
 
 

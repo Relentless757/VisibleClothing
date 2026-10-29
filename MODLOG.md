@@ -197,3 +197,8 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   ~2800-4800. Tripo UV use 60-68% (vanilla 75-95%). Now prep_textures keeps source size (cap 4096), pack_unity hints
   outfits 4096 / small 2048 / RMOE half. Verified prep reproduces the old 45 PNGs byte-identically first. Bundle
   105 MB -> 300 MB (BC7). Old bundle in _work/backup_1.1.1/.
+- 2026-10-29 T3 gloves looked like plastic: Tripo albedo is flat colour, normal map nearly empty (std 3.9 vs albedo 24).
+  tools/surface_grain.py: fabric grain from 3D value noise evaluated at each texel's point on the fitted mesh (same size
+  everywhere, continuous across UV seams; gloves: one hand, both share UVs), whiteout-blended into the normal map, 6%
+  into albedo, roughness floor 0.86. prep_textures option grain={mm,strength} (OVERRIDE / pack.json); HandsT3 1.2 mm x1.
+  Gotcha: PIL resize of an RGBA map with alpha 0 zeroes RGB (premultiplied) - the RMOE must not be resized as RGBA.
