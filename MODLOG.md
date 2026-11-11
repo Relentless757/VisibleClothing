@@ -180,3 +180,34 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
 - 2026-10-23 RELEASE 1.1.1: IGP/IZY first-person arms compatibility (SetTransformActivePatch), user-verified in game with
   IGP weapons (T1-T3 gloves) and MeleeOverhaulProto vanilla-arms on. Zip My Mods/Nexus Upload Safe/VisibleClothing_v1.1.1.zip
   (publish check PASS), BBCode release/VisibleClothing_v1.1.1_Nexus.bbcode.
+- 2026-10-28 PORT to V3.3 (3.30 b18) and V3.4 (3.40 b6), test installs in F:\7 Days to Die Version Control\{3.3\7 Days To Die,3.4}.
+  Same Unity 2022.3.62f2. Player assets: 3.3 identical to 3.2 (only female raider gear rebuilt); 3.4 rebuilt most
+  bundles but bodies, 184 bones, all 32 heads and all vanilla boots are vertex-identical (extracted + compared) ->
+  fits, bundle and XML carry over unchanged (12 clothing items identical in Data/Config/items.xml). Nomad shader
+  template: same catalog address, same _Albedo/_Normal/_RMOE slots.
+  Code: 3.3 Equipment moved m_slots (ItemValue[]) to ItemStackGrid, GetItems() removed, 13 slots (Backpack = 12;
+  clothing still 8-11). setupEquipment reads slots via Equipment.GetSlotItem in all versions -> SetupEquipmentPatch
+  now sets a slot mask and GetSlotItemPatch returns ItemValue.None for suppressed slots (no mutation). 3.4
+  SDCSUtils.getPartNameWithVariant asks GearFitMatrixSO (not GearVariantMatrixSO) -> BootVariantPatch patches
+  whichever of the two exists (same GetVariantOrEmpty signature). One DLL, byte-identical when built against 3.2,
+  3.3 and 3.4. Installed into both test installs; not tested in game yet.
+- 2026-10-28 texel density: sources are 4096 (HandsT3 2048) but builds were capped at 2048 (outfits) / 1024 (head,
+  hands, feet), RMOE 1024. Measured px/m: ours outfits 1480-2340, hats 1600-2070, gloves 2700-3650, socks 1230-1910;
+  vanilla (DXT5, body 4096 / head-hands-feet 2048, all maps) body 1750-2650, head ~4000, hands ~6000-8600, feet
+  ~2800-4800. Tripo UV use 60-68% (vanilla 75-95%). Now prep_textures keeps source size (cap 4096), pack_unity hints
+  outfits 4096 / small 2048 / RMOE half. Verified prep reproduces the old 45 PNGs byte-identically first. Bundle
+  105 MB -> 300 MB (BC7). Old bundle in _work/backup_1.1.1/.
+- 2026-10-29 T3 gloves looked like plastic: Tripo albedo is flat colour, normal map nearly empty (std 3.9 vs albedo 24).
+  tools/surface_grain.py: fabric grain from 3D value noise evaluated at each texel's point on the fitted mesh (same size
+  everywhere, continuous across UV seams; gloves: one hand, both share UVs), whiteout-blended into the normal map, 6%
+  into albedo, roughness floor 0.86. prep_textures option grain={mm,strength} (OVERRIDE / pack.json); HandsT3 1.2 mm x1.
+  Gotcha: PIL resize of an RGBA map with alpha 0 zeroes RGB (premultiplied) - the RMOE must not be resized as RGBA.
+- 2026-11-10 T3 gloves remeshed in the fitting file (live Blender): backup ClothingHandsT3old; join_triangles (cmp_uvs,
+  only 556 quads: tiny Tripo islands), Subsurf level 1 with uv_smooth NONE (UV smoothing is what broke the user's own
+  attempt), then size restore: per original vertex the offset back from its subdivided vertex point, spread over mesh
+  EDGES (Euclidean IDW pulled between fingers: 64 verts into the hand). 3,410 -> 18,236 tris per glove; original verts
+  back within 0.05 mm, surface within 0.2 mm median; texture check vs original 2.35% vs 1.77% baseline; skin pokes = the
+  closed wrist cap (also in the original). Built --raw + grain, weights 36 FP-safe bones, sleeves glove_check unchanged.
+- 2026-11-10 RELEASE 1.2.0: V3.2-3.4 (one DLL), vanilla-size textures, T3 glove remesh + grain. Zip
+  My Mods/Nexus Upload Safe/VisibleClothing_v1.2.0.zip (289 MB; publish check PASS vs 3.2 and 3.4 Data +
+  7DaysToDie_Data), BBCode release/VisibleClothing_v1.2.0_Nexus.bbcode. Branch port-3.3-3.4 merged into main.

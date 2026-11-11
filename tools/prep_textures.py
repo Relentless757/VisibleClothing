@@ -1,8 +1,10 @@
 """Collect each item's Tripo PBR maps from `7D2D Clothing models/<Item>.fbm/` and write what Unity's Standard
 game's character shader (Game/Character) wants into _work/out/:
-    <Item>.png       albedo (2048)
-    <Item>_n.png     normal map (2048, OpenGL / +Y like Unity)
-    <Item>_rmoe.png  R = roughness, G = metallic, B = occlusion (1), A = emission (0)  (1024; low-frequency data)
+    <Item>.png       albedo (source size, at most 4096)
+    <Item>_n.png     normal map (same size, OpenGL / +Y like Unity)
+    <Item>_rmoe.png  R = roughness, G = metallic, B = occlusion (1), A = emission (0)  (half that; low-frequency data)
+The size each map is built at in the bundle is set per item by tools/pack_unity.py (TEX_SIZE): like vanilla gear,
+outfits 4096 and head / hands / feet 2048, roughness-metallic at half.
                      -- the same packing as vanilla gear's _RMOE maps
 
 python tools/prep_textures.py [Item ...]
@@ -35,6 +37,8 @@ OVERRIDE = {
     "ClothingHeadT1": dict(rough_min=0.85, no_metal=True),   # knit hats / balaclava: wool, no metal
     "ClothingHeadT2": dict(rough_min=0.85, no_metal=True),
     "ClothingHeadT3": dict(rough_min=0.85, no_metal=True),
+    # flat colour + an almost empty normal map: read as plastic in game -> surface grain (tools/surface_grain.py)
+    "ClothingHandsT3": dict(grain=dict(mm=1.2, strength=1.0)),
 }
 
 
@@ -50,30 +54,38 @@ def find(folder):
     return got
 
 
-def load(p, mode, size):
+MAX_SIZE = 4096
+
+
+def load(p, mode, size=None):
+    """size None: the source size, capped at MAX_SIZE."""
     im = Image.open(p).convert(mode)
+    size = size or min(max(im.size), MAX_SIZE)
     return im.resize((size, size), Image.LANCZOS) if im.size != (size, size) else im
 
 
 def prep(item):
     folder = vc_pack.texture_dir(item)
     m = find(folder) if folder else {}
+    size = None
     if "albedo" in m:
-        load(m["albedo"], "RGB", 2048).save(os.path.join(OUT, f"{item}.png"))
+        alb = load(m["albedo"], "RGB")
+        size = alb.size[0]
+        alb.save(os.path.join(OUT, f"{item}.png"))
     elif os.path.exists(os.path.join(OUT, f"{item}.png")):
         print(f"{item}: no PBR maps ({folder or 'no texture folder'}); keeping the fitting file's albedo, matte default")
     else:
         print(f"{item}: no albedo found ({folder or 'no texture folder'})"); return
     note = []
     if "normal" in m:
-        load(m["normal"], "RGB", 2048).save(os.path.join(OUT, f"{item}_n.png")); note.append("normal")
+        load(m["normal"], "RGB", size).save(os.path.join(OUT, f"{item}_n.png")); note.append("normal")
     elif os.path.exists(os.path.join(OUT, f"{item}_n.png")):
         os.remove(os.path.join(OUT, f"{item}_n.png"))
-    S = 1024
+    S = max(1024, (size or 2048) // 2)
     rough = np.asarray(load(m["rough"], "L", S), np.float32) / 255 if "rough" in m else np.full((S, S), 0.8, np.float32)
     metal = np.asarray(load(m["metal"], "L", S), np.float32) / 255 if "metal" in m else np.zeros((S, S), np.float32)
     o = dict(OVERRIDE.get(item, {}), **{k_: v for k_, v in ((vc_pack.items() or {}).get(item) or {}).items()
-                                         if k_ in ("rough_min", "no_metal")})
+                                         if k_ in ("rough_min", "no_metal", "grain")})
     rough = np.maximum(rough, o.get("rough_min", 0.7))   # cloth/leather is never glossy; some Tripo roughness maps are
     if o.get("no_metal"):
         metal[:] = 0
@@ -89,6 +101,17 @@ def prep(item):
     if os.path.exists(old_ms):
         os.remove(old_ms)
     note.append(f"rough {rough.mean():.2f} metal {metal.mean():.2f}")
+    if o.get("grain"):
+        fitted = os.path.join(OUT, f"{item}_male.json")
+        if os.path.exists(fitted):
+            import surface_grain
+            g = dict(o["grain"])
+            surface_grain.apply(fitted, os.path.join(OUT, f"{item}.png"), os.path.join(OUT, f"{item}_n.png"),
+                                os.path.join(OUT, f"{item}_rmoe.png"), mm=g.get("mm", 1.2), strength=g.get("strength", 1.0),
+                                one_hand=vc_pack.kind_of(item) == "hands")
+            note.append(f"surface grain {g.get('mm', 1.2)} mm x{g.get('strength', 1.0)}")
+        else:
+            note.append("grain skipped: fit it first (no fitted mesh)")
     print(f"{item}: albedo + {', '.join(note) or 'nothing else'}")
 
 

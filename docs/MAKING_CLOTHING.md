@@ -141,6 +141,7 @@ sleeve ends that are inside a glove are pushed out over it (`over_gloves`).
 | `strings` | `true`: small loose pieces at the front of the waist get cloth physics (drawstrings) |
 | `neck_tight`, `neck_gap` | hats: the neck below `Neck + neck_tight` m hugs the skin at `neck_gap` m (so collars cover it) |
 | `rough_min`, `no_metal` | texture: minimum roughness (default 0.7), ignore the metallic map |
+| `grain` | texture came out smooth / plastic: add fabric grain on the 3D surface, `{"mm": 1.2, "strength": 1.0}` |
 | `gap` | build without `--raw`: minimum distance from the skin (m) |
 
 Replacing an **existing** item's look (e.g. `clothingHeadT1`) also works: leave out `new_item`. The add-on removes
