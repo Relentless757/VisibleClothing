@@ -208,3 +208,6 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   EDGES (Euclidean IDW pulled between fingers: 64 verts into the hand). 3,410 -> 18,236 tris per glove; original verts
   back within 0.05 mm, surface within 0.2 mm median; texture check vs original 2.35% vs 1.77% baseline; skin pokes = the
   closed wrist cap (also in the original). Built --raw + grain, weights 36 FP-safe bones, sleeves glove_check unchanged.
+- 2026-11-10 RELEASE 1.2.0: V3.2-3.4 (one DLL), vanilla-size textures, T3 glove remesh + grain. Zip
+  My Mods/Nexus Upload Safe/VisibleClothing_v1.2.0.zip (289 MB; publish check PASS vs 3.2 and 3.4 Data +
+  7DaysToDie_Data), BBCode release/VisibleClothing_v1.2.0_Nexus.bbcode. Branch port-3.3-3.4 merged into main.

@@ -1,6 +1,6 @@
-# Visible Clothing (7 Days to Die V3.2)
+# Visible Clothing (7 Days to Die V3.2 - V3.4)
 
-Gives the 12 V3.2 clothing items real 3D models. A piece is drawn whenever the matching armor slot is empty, or that
+Gives the 12 clothing items (added in V3.2) real 3D models. One release runs on V3.2, V3.3 and V3.4. A piece is drawn whenever the matching armor slot is empty, or that
 armor piece is set to **Hidden** in the cosmetics menu.
 
 | Slot  | Tattered (T1)          | Patchwork (T2)           | ThermaCore (T3)              |
