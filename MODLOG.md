@@ -202,3 +202,9 @@ Previews: `bash tools/pv.sh <name> <Items...>` → `_work/<name>.png`. Hand cove
   everywhere, continuous across UV seams; gloves: one hand, both share UVs), whiteout-blended into the normal map, 6%
   into albedo, roughness floor 0.86. prep_textures option grain={mm,strength} (OVERRIDE / pack.json); HandsT3 1.2 mm x1.
   Gotcha: PIL resize of an RGBA map with alpha 0 zeroes RGB (premultiplied) - the RMOE must not be resized as RGBA.
+- 2026-11-10 T3 gloves remeshed in the fitting file (live Blender): backup ClothingHandsT3old; join_triangles (cmp_uvs,
+  only 556 quads: tiny Tripo islands), Subsurf level 1 with uv_smooth NONE (UV smoothing is what broke the user's own
+  attempt), then size restore: per original vertex the offset back from its subdivided vertex point, spread over mesh
+  EDGES (Euclidean IDW pulled between fingers: 64 verts into the hand). 3,410 -> 18,236 tris per glove; original verts
+  back within 0.05 mm, surface within 0.2 mm median; texture check vs original 2.35% vs 1.77% baseline; skin pokes = the
+  closed wrist cap (also in the original). Built --raw + grain, weights 36 FP-safe bones, sleeves glove_check unchanged.
